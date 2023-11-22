@@ -1,0 +1,77 @@
+image: atlassian/default-image:latest
+pipelines:
+  branches:
+    master:
+    - step:
+        name: Build, Test and Deploy to PROD
+        oidc: true
+        deployment: Production
+        script:
+          - export AWS_REGION=$AWS_REGION
+          - export AWS_ROLE_ARN=$AWS_ROLE_ARN
+          - export AWS_WEB_IDENTITY_TOKEN_FILE=$(pwd)/web-identity-token
+          - echo $BITBUCKET_STEP_OIDC_TOKEN > $(pwd)/web-identity-token
+          - apt-get update && apt install python3-pip -y && apt install ruby -y
+          - pip3 install -r requirements-pipe.txt && gem install cfn-nag 
+          - cd pipeline_scripts && python3 -m install_layer_reqs && python3 -m copy_code_base
+          - python3 -m run_cdk_synth --env prd
+          - python3 -m run_cfn_lint
+          # - python3 -m run_cfn_nag
+          - python3 -m run_cdk_deploy --env prd
+
+    staging:
+    - step:
+        name: Build, Test and Deploy to STAG
+        oidc: true
+        deployment: Staging
+        script:
+          - export AWS_REGION=$AWS_REGION
+          - export AWS_ROLE_ARN=$AWS_ROLE_ARN
+          - export AWS_WEB_IDENTITY_TOKEN_FILE=$(pwd)/web-identity-token
+          - echo $BITBUCKET_STEP_OIDC_TOKEN > $(pwd)/web-identity-token
+          - apt-get update && apt install python3-pip -y && apt install ruby -y
+          - pip3 install -r requirements-pipe.txt && gem install cfn-nag 
+          - cd pipeline_scripts && python3 -m install_layer_reqs && python3 -m copy_code_base
+          - python3 -m run_cdk_synth --env stg
+          - python3 -m run_cfn_lint
+          # - python3 -m run_cfn_nag
+          - python3 -m run_cdk_deploy --env stg
+
+    dev:
+    - step:
+        name: Build, Test and Deploy to DEV
+        oidc: true
+        deployment: Dev
+        script:
+          - export AWS_REGION=$AWS_REGION
+          - export AWS_ROLE_ARN=$AWS_ROLE_ARN
+          - export AWS_WEB_IDENTITY_TOKEN_FILE=$(pwd)/web-identity-token
+          - echo $BITBUCKET_STEP_OIDC_TOKEN > $(pwd)/web-identity-token
+          - apt-get update && apt install python3-pip -y && apt install ruby -y
+          - pip3 install -r requirements-pipe.txt && gem install cfn-nag 
+          - cd pipeline_scripts && python3 -m install_layer_reqs && python3 -m copy_code_base
+          - python3 -m run_cdk_synth --env dev
+          - python3 -m run_cfn_lint
+          # - python3 -m run_cfn_nag
+          - python3 -m run_cdk_deploy --env dev
+        trigger: automatic
+      
+
+    # feature/*:
+    # - step:
+    #     name: Build and Test (DEV)
+    #     oidc: true
+    #     deployment: Dev
+    #     script:
+    #       - export AWS_REGION=$AWS_REGION
+    #       - export AWS_ROLE_ARN=$AWS_ROLE_ARN
+    #       - export AWS_WEB_IDENTITY_TOKEN_FILE=$(pwd)/web-identity-token
+    #       - echo $BITBUCKET_STEP_OIDC_TOKEN > $(pwd)/web-identity-token
+    #       - apt-get update && apt install python3-pip -y && apt install ruby -y
+    #       - pip3 install -r requirements-pipe.txt && gem install cfn-nag 
+    #       - cd pipeline_scripts && python3 -m install_layer_reqs && python3 -m copy_code_base
+    #       - python3 -m run_cdk_synth --env dev
+    #       - python3 -m run_cfn_lint
+    #       # - python3 -m run_cfn_nag
+    #       - python3 -m run_cdk_deploy --env dev
+    #     trigger: automatic
